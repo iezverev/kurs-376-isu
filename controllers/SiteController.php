@@ -8,7 +8,15 @@ use yii\web\Controller;
 use yii\web\Response;
 use yii\filters\VerbFilter;
 use app\models\LoginForm;
-use app\models\ContactForm;
+use app\models\Message;
+use app\models\SignupForm;
+use app\models\User;
+use app\models\Theme;
+use app\models\ThemeCreation;
+use app\models\UploadForm;
+use yii\web\UploadedFile;
+
+
 
 class SiteController extends Controller
 {
@@ -59,9 +67,29 @@ class SiteController extends Controller
      *
      * @return string
      */
-    public function actionIndex()
+    public function actionForum($idredact = null)
     {
-        return $this->render('index');
+    	$themes = Theme::find()->all();
+        $model = new ThemeCreation();
+        $buttonname = 'Создать';
+
+        if ($idredact) 
+        {
+            $buttonname = 'Редактировать';
+            $model = ThemeCreation::findOne($idredact);
+            if ($model->load(Yii::$app->request->post()) && $model->save() && Yii::$app->user->identity->role == 'admin') 
+            {  
+                return $this->redirect('forum');
+            }   
+            return $this->render('forum', compact('model', 'buttonname','themes'));
+        }
+
+        if ($model->load(Yii::$app->request->post())) { 
+            $model->save();
+            $this->redirect('forum');
+        }
+
+        return $this->render('forum', compact('themes', 'buttonname', 'model'));
     }
 
     /**
@@ -70,27 +98,87 @@ class SiteController extends Controller
      * @return Response|string
      */
     public function actionLogin()
-    {
+    {    
         if (!Yii::$app->user->isGuest) {
             return $this->goHome();
         }
-
         $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
+        $user = new User();
+        if ($model->load(Yii::$app->request->post()) && $model->login()) { 
+            if((Yii::$app->user->identity->role)=='admin'){
+            $this->redirect(['/site/index']);
+        }
+            else if((Yii::$app->user->identity->role)=='user'){
+                $this->redirect(['/site/cabinet']);
+            }
+        }
+        //$model->password = '';
+           return $this->render('login', [
+               'model' => $model,
+           ]);
+     //   return $this->render('index');
+        }   
+
+
+   
+
+    public function actionRemovetheme($id)
+    {
+        if (Yii::$app->user->isGuest)
+        {
+            return $this->goHome();
         }
 
-        $model->password = '';
-        return $this->render('login', [
-            'model' => $model,
-        ]);
+        $onetheme = Theme::findOne($id);
+        $messages = UploadForm::find()->where('id_theme='.$id)->all();
+        for ($i=0; $i < count($messages); $i++) { 
+            $messages[$i]->delete();
+        }
+        $onetheme->delete();
+
+
+
+        return $this->redirect('forum');
     }
 
-    /**
-     * Logout action.
-     *
-     * @return Response
-     */
+
+    
+
+
+
+
+    public function actionThemepage($id)
+    {    
+    	
+
+        $themeinfo = Theme::findOne($id);
+        $messages = UploadForm::find()->where('id_theme='.$themeinfo->id)->all();
+        $model = new UploadForm();
+                
+        if(!Yii::$app->user->isGuest) {
+            if ($model->load(Yii::$app->request->post())) {
+                if (Yii::$app->request->isPost) {
+                    $model->imageFile = UploadedFile::getInstance($model, 'imageFile');
+                    if ($model->imageFile !== null) {
+                        $model->imageFile->saveAs('uploads/'.$model->imageFile->basename.'.'.$model->imageFile->extension);
+                        $model->imageFile = 'uploads/'.$model->imageFile->basename.'.'.$model->imageFile->extension;
+                    } else {
+                        $model->imageFile = 'none';
+                    }
+                    $model->save();
+                    return $this->redirect('themepage?id='.$id);
+                }
+                
+            }
+        }
+
+          
+
+
+
+        return $this->render('themepage', compact('themeinfo','model', 'id' , 'messages'));
+    }
+    
     public function actionLogout()
     {
         Yii::$app->user->logout();
@@ -103,26 +191,30 @@ class SiteController extends Controller
      *
      * @return Response|string
      */
-    public function actionContact()
-    {
-        $model = new ContactForm();
-        if ($model->load(Yii::$app->request->post()) && $model->contact(Yii::$app->params['adminEmail'])) {
-            Yii::$app->session->setFlash('contactFormSubmitted');
 
-            return $this->refresh();
+
+    public function actionSignup()
+    {
+
+        $user = new User();
+        
+        $model = new SignupForm();
+        if($model->load(Yii::$app->request->post()) && $model->validate()   ){
+
+
+
+            $user->password = Yii::$app->security->generatePasswordHash($model->password);
+            $user->username = $model->username;
+            $user->fio = $model->fio;
+            $user->role = 'user';
+            
+         if($user->save()){
+            $this->redirect(['/site/login']);
+         }
         }
-        return $this->render('contact', [
-            'model' => $model,
-        ]);
+
+     return $this->render('signup', compact('model'));
     }
 
-    /**
-     * Displays about page.
-     *
-     * @return string
-     */
-    public function actionAbout()
-    {
-        return $this->render('about');
-    }
+
 }
