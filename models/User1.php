@@ -4,8 +4,9 @@ namespace app\models;
 
 use Yii;
 use yii\db\ActiveQuery;
+use yii\db\ActiveRecord;
 
-class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
+class User1 extends ActiveRecord
 {
     public $id;
     public $username;
@@ -29,7 +30,7 @@ class User extends \yii\base\BaseObject implements \yii\web\IdentityInterface
             'accessToken' => '101-token',
         ],
     ];
-
+ 
 
     /**
      * {@inheritdoc}

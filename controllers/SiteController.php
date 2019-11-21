@@ -10,7 +10,7 @@ use yii\filters\VerbFilter;
 use app\models\LoginForm;
 use app\models\Message;
 use app\models\SignupForm;
-use app\models\User;
+use app\models\User1;
 use app\models\Theme;
 use app\models\ThemeCreation;
 use app\models\UploadForm;
@@ -103,7 +103,7 @@ class SiteController extends Controller
             return $this->goHome();
         }
         $model = new LoginForm();
-        $user = new User();
+        $user = new User1();
         if ($model->load(Yii::$app->request->post()) && $model->login()) { 
             if((Yii::$app->user->identity->role)=='admin'){
             $this->redirect(['/site/index']);
@@ -196,7 +196,7 @@ class SiteController extends Controller
     public function actionSignup()
     {
 
-        $user = new User();
+        $user = new User1();
         
         $model = new SignupForm();
         if($model->load(Yii::$app->request->post()) && $model->validate()   ){

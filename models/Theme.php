@@ -13,7 +13,7 @@ class Theme extends ActiveRecord
 
 	public function getUser()
     {
-        return $this->hasOne(User::className(), ['id' => 'id_user']);
+        return $this->hasOne(User1::className(), ['id' => 'id_user']);
     }
 
 }	
